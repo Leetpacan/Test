@@ -1,4 +1,5 @@
 import scrapy
+import os
 from scrapy import signals
 from scrapy.signalmanager import dispatcher
 from newspaper import Article
@@ -21,11 +22,19 @@ class RssSpider(scrapy.Spider):
 
     def parse(self, response):
         root = ET.fromstring(response.text)
+        if os.path.isfile("source_state.json"):
+            with open("source_state.json") as f:
+                data = json.load(f)
+                self.need_render = data["need_render"]
+        else:
+            self.need_render = bool(response.text)
         for item in root.findall('.//item'):
             news_url = item.find('link').text
             article = Article(news_url)
             article.download()
             article.parse()
+            #self.need_render = bool(article.text)
+            #print(self.need_render)
             yield {
                 'url': news_url,
                 'title': article.title,
